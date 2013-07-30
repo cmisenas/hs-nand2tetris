@@ -15,5 +15,22 @@ CHIP RAM64 {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    DMux8Way(in=load, sel=address[3..5], a=load1, b=load2, c=load3, d=load4, e=load5, f=load6, g=load7, h=load8);
+    Mux16(a=prevout1, b=in, sel=load1, out=mout1);
+    RAM8(in=mout1, load=true, address=address[0..2], out=prevout1);
+    Mux16(a=prevout2, b=in, sel=load2, out=mout2);
+    RAM8(in=mout2, load=true, address=address[0..2], out=prevout2);
+    Mux16(a=prevout3, b=in, sel=load3, out=mout3);
+    RAM8(in=mout3, load=true, address=address[0..2], out=prevout3);
+    Mux16(a=prevout4, b=in, sel=load4, out=mout4);
+    RAM8(in=mout4, load=true, address=address[0..2], out=prevout4);
+    Mux16(a=prevout5, b=in, sel=load5, out=mout5);
+    RAM8(in=mout5, load=true, address=address[0..2], out=prevout5);
+    Mux16(a=prevout6, b=in, sel=load6, out=mout6);
+    RAM8(in=mout6, load=true, address=address[0..2], out=prevout6);
+    Mux16(a=prevout7, b=in, sel=load7, out=mout7);
+    RAM8(in=mout7, load=true, address=address[0..2], out=prevout7);
+    Mux16(a=prevout8, b=in, sel=load8, out=mout8);
+    RAM8(in=mout8, load=true, address=address[0..2], out=prevout8);
+    Mux8Way16(a=prevout1, b=prevout2, c=prevout3, d=prevout4, e=prevout5, f=prevout6, g=prevout7, h=prevout8, sel=address[3..5], out=out);
 }
