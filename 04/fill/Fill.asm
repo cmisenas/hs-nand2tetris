@@ -15,7 +15,7 @@
     @addr
     M=D
 
-    @147456
+    @24576
     D=A
     @counter
     M=D
@@ -27,18 +27,24 @@
 
         (ERASE)
             @addr
+            D=M
+            @counter
+            D=M-D
+            @ENDERASE
+            D;JLE
+
+            @addr
             A=M
             M=0
             @addr
             D=M
-            @32
+            @1
             D=D+A
             @addr
             M=D
-            @counter
-            MD=M-1
         @ERASE
-        D;JGT
+        0;JMP
+        (ENDERASE)
 
     @END
     0;JMP
@@ -46,18 +52,24 @@
 
         (DRAW)
             @addr
+            D=M
+            @counter
+            D=M-D
+            @ENDDRAW
+            D;JLE
+
+            @addr
             A=M
             M=-1
             @addr
             D=M
-            @32
+            @1
             D=D+A
             @addr
             M=D
-            @counter
-            MD=M-1
         @DRAW
-        D;JGT
+        0;JMP
+        (ENDDRAW)
 
     (END)
 @INFINITE_LOOP
