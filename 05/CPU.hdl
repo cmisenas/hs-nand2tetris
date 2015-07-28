@@ -47,17 +47,26 @@ CHIP CPU {
      **************************/
 
     // Instruction decoding
-    Or(a=false, b=instruction[15], out=checkingMSB);
-    Not(in=instruction[15], out=notc);
-    // if A-instruction, load v-bits into A-register
-    ARegister(in=instruction, load=notc, out=aout);
-    Mux16(a[0..15]=false, b=aout, sel=notc, out=aInstrAddressM);
+    Not(in=instruction[15], out=isAInstruction);
 
 
 
 
-
+    // Set A register (addressM)
+    // if a-instruction then addressM=a-instruction
     // otherwise
+    //   if loadA then addressM=c instruction result
+    //   else keep old addressM
+    //Mux16(a=oldAReg, b=aout, sel=loadA, out[0..14]=addressM, out[15]=msb1);
+
+
+    Mux16(a=aluOut, b=instruction, sel=isAInstruction, out=aRegIn);
+    // if A-instruction, load v-bits into A-register
+    Or(a=isAInstruction, b=loadA, out=loadAReg);
+    ARegister(in=aRegIn, load=loadAReg, out=aout, out[0..14]=addressM);
+
+
+
 
     // check d-bits (destination)
     And(a=instruction[15], b=instruction[3], out=loadM, out=writeM);
@@ -65,9 +74,18 @@ CHIP CPU {
     And(a=instruction[15], b=instruction[5], out=loadA);
 
 
+
+
+    // otherwise
+
+
+
+
     // do computation
     Mux16(a=aout, b=inM, sel=instruction[12], out=aOrM);
+
     DRegister(in=aluOut, load=loadD, out=dout);
+
     ALU(x=dout, y=aOrM, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], zr=zeroOut, ng=negativeOut, out=aluOut);
 
 
@@ -78,19 +96,9 @@ CHIP CPU {
     Or(a=zeroOut, b=positiveOut, out=positiveOrZeroOut);
     Or(a=zeroOut, b=negativeOut, out=negativeOrZeroOut);
 
+
+    // load into m
     Mux16(a=aout, b=aluOut, sel=loadM, out=outM);
-    Mux16(a[0..15]=false, b=aout, sel=loadM, out=cInstrAddressM);
-
-    DRegister(in=aluOut, load=loadD, out=dOut);
-    ARegister(in=aluOut, load=loadA, out=aOut);
-
-    // Set A register (addressM)
-    // if a-instruction then addressM=a-instruction
-    // otherwise
-    //   if loadA then addressM=c instruction result
-    //   else nothing
-    Mux16(a=aout, b=cInstrAddressM, sel=loadM, out[0..14]=addressM, out[15]=msb1);
-
 
 
 
