@@ -46,48 +46,11 @@ CHIP CPU {
      * i xx a cccccc ddd jjj  *
      **************************/
 
-    // Instruction decoding
+    //////////////////////////
+    // Instruction decoding //
+    //////////////////////////
+
     Not(in=instruction[15], out=isAInstruction);
-
-
-
-
-    // Set A register (addressM)
-    // if a-instruction then addressM=a-instruction
-    // otherwise
-    //   if loadA then addressM=c instruction result
-    //   else keep old addressM
-    //Mux16(a=oldAReg, b=aout, sel=loadA, out[0..14]=addressM, out[15]=msb1);
-
-
-    Mux16(a=aluOut, b=instruction, sel=isAInstruction, out=aRegIn);
-    // if A-instruction, load v-bits into A-register
-    Or(a=isAInstruction, b=loadA, out=loadAReg);
-    ARegister(in=aRegIn, load=loadAReg, out=aout, out[0..14]=addressM);
-
-
-
-
-    // check d-bits (destination)
-    And(a=instruction[15], b=instruction[3], out=loadM, out=writeM);
-    And(a=instruction[15], b=instruction[4], out=loadD);
-    And(a=instruction[15], b=instruction[5], out=loadA);
-
-
-
-
-    // otherwise
-
-
-
-
-    // do computation
-    Mux16(a=aout, b=inM, sel=instruction[12], out=aOrM);
-
-    DRegister(in=aluOut, load=loadD, out=dout);
-
-    ALU(x=dout, y=aOrM, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], zr=zeroOut, ng=negativeOut, out=aluOut);
-
 
     // Used for j-bits later
     Not(in=zeroOut, out=notZeroOut);
@@ -96,6 +59,18 @@ CHIP CPU {
     Or(a=zeroOut, b=positiveOut, out=positiveOrZeroOut);
     Or(a=zeroOut, b=negativeOut, out=negativeOrZeroOut);
 
+    // check d-bits (destination)
+    And(a=instruction[15], b=instruction[3], out=loadM, out=writeM);
+    And(a=instruction[15], b=instruction[4], out=loadD);
+    And(a=instruction[15], b=instruction[5], out=loadA);
+
+    // check c-bits (computation)
+    And(a=instruction[15], b=instruction[11], out=zxComp);
+    And(a=instruction[15], b=instruction[10], out=nxComp);
+    And(a=instruction[15], b=instruction[9], out=zyComp);
+    And(a=instruction[15], b=instruction[8], out=nyComp);
+    And(a=instruction[15], b=instruction[7], out=fComp);
+    And(a=instruction[15], b=instruction[6], out=noComp);
 
     // load into m
     Mux16(a=aout, b=aluOut, sel=loadM, out=outM);
@@ -103,29 +78,48 @@ CHIP CPU {
 
 
 
-    // Fetch next computation
-    DMux8Way(in=true, sel=instruction[0..2], a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h);
+    ////////////////////////////////
+    // Execution of A-instruction //
+    ////////////////////////////////
 
+    Mux16(a=aluOut, b=instruction, sel=isAInstruction, out=aRegIn);
+    // if A-instruction, load v-bits into A-register
+    Or(a=isAInstruction, b=loadA, out=loadAReg);
+    ARegister(in=aRegIn, load=loadAReg, out=aout, out[0..14]=addressM);
+
+
+    // Alternatively
+    ////////////////////////////////
+    // Execution of C-instruction //
+    ////////////////////////////////
+
+
+    // do computation
+    Mux16(a=aout, b=inM, sel=instruction[12], out=aOrM);
+    DRegister(in=aluOut, load=loadD, out=dout);
+    ALU(x=dout, y=aOrM, zx=zxComp, nx=nxComp, zy=zyComp, ny=nyComp, f=fComp, no=noComp, zr=zeroOut, ng=negativeOut, out=aluOut);
+
+
+
+
+    ////////////////////////////
+    // Fetch next computation //
+    ////////////////////////////
+
+    DMux8Way(in=true, sel=instruction[0..2], a=a, b=b, c=c, d=d, e=e, f=f, g=g, h=h);
     // Check if b is true (output greater than 0)
     And(a=b, b=positiveOut, out=jgt);
-
     // Check if c is true (output equal to 0)
     And(a=c, b=zeroOut, out=jeq);
-
     // Check if d is true (output is greater than or equal to 0)
     And(a=d, b=positiveOrZeroOut, out=jge);
-
     // Check if e is true (output is less than 0)
     And(a=e, b=negativeOut, out=jlt);
-
     // Check if f is true (output is not equal to 0)
     And(a=f, b=notZeroOut, out=jne);
-
     // Check if g is true (output is less than or equal to 0)
     And(a=g, b=negativeOrZeroOut, out=jle);
-
     Or8Way(in[0]=false, in[1]=jgt, in[2]=jeq, in[3]=jge, in[4]=jlt, in[5]=jne, in[6]=jle, in[7]=h, out=shouldLoad);
     And(a=instruction[15], b=shouldLoad, out=load);
-
     PC(in=aout, load=load, inc=true, reset=reset, out[0..14]=pc, out[15]=msb2);
 }
