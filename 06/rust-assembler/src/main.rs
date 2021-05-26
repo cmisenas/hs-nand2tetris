@@ -1,7 +1,8 @@
 mod code_module;
+mod parser_module;
 mod utils;
 
-use crate::code_module::*;
+use crate::parser_module::*;
 use crate::utils::*;
 use std::env;
 
@@ -17,28 +18,20 @@ fn first_pass() {
     //   - If (LABEL)
 }
 
-fn generate_a_ins(statement: &String) -> String {
-    // Return 0xxx xxxx xxxx xxxx
-    let val = statement.strip_prefix("@").unwrap().parse::<i16>().unwrap();
-    to_binary(val)
-}
-
-fn to_binary(x: i16) -> String {
-    // Where x is either a non-negative decimal number
-    // or a symbol referring to such number.
-    // NOTE: This won't work if a negative value is passed?
-    format!("{:016b}", x)
-}
-
-fn is_a_ins(statement: &String) -> bool {
-    statement.starts_with("@") || statement.starts_with("(")
-}
-
-fn second_pass() {
-    // - Start code generation
-    //   - If @, generate A instruction
-    //     NOTE: (LABEL) is not expected as first_pass should've replaced it with @
-    //   - Otherwise, generate C instruction
+fn second_pass(program: Vec<String>) -> Vec<String> {
+    let mut parser = Parser::new(program.clone());
+    parser.init();
+    let mut result: Vec<String> = Vec::new();
+    while parser.has_more_commands() {
+        match parser.command_type() {
+            CommandType::ACommand => result.push(parser.generate_a_ins()),
+            CommandType::CCommand => result.push(parser.generate_c_ins()),
+            // CommandType::LCommand => ,
+            _ => panic!("Unknown command type given!"),
+        }
+        parser.advance();
+    }
+    result
 }
 
 fn get_file_name(filepath: String) -> String {
@@ -66,13 +59,6 @@ fn main() {
             _ => Some(strip_comments(l).to_string()),
         })
         .collect::<Vec<String>>();
-    let mut result: Vec<String> = Vec::new();
-    for statement in program.iter() {
-        if is_a_ins(statement) {
-            result.push(generate_a_ins(statement));
-        } else {
-            result.push(generate_c_ins(&statement));
-        }
-    }
+    let result = second_pass(program);
     write_to_file(&hack_filename, &result.join("\n"));
 }

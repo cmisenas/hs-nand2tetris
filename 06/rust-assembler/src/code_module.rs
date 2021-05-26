@@ -33,28 +33,6 @@ fn init_bit_spec(specs: Vec<String>) -> HashMap<String, String> {
     _bits.iter().cloned().collect::<HashMap<String, String>>()
 }
 
-pub fn generate_c_ins(statement: &str) -> String {
-    let jump_parts: Vec<&str> = statement.split(|c| c == ';').collect();
-    let comp_parts: Vec<&str> = jump_parts[0].split(|c| c == '=').collect();
-    let comp_bits: &str = match comp_parts.len() {
-        2 => comp_parts[1],
-        _ => comp_parts[0],
-    };
-    let dest_bits: &str = match comp_parts.len() {
-        2 => comp_parts[0],
-        _ => "null",
-    };
-    let jump_bits: &str = match jump_parts.len() {
-        2 => jump_parts[1],
-        _ => "null",
-    };
-    let mut c_ins = "111".to_string();
-    c_ins.push_str(&comp(comp_bits));
-    c_ins.push_str(&dest(dest_bits));
-    c_ins.push_str(&jump(jump_bits));
-    c_ins
-}
-
 pub fn comp(mnemonic: &str) -> String {
     COMP_BITS.get(mnemonic).unwrap().to_string()
 }
@@ -87,11 +65,5 @@ mod tests {
     fn jump_works() {
         assert_eq!(jump("null"), "000");
         assert_eq!(jump("JGE"), "011");
-    }
-
-    #[test]
-    fn generate_c_ins_works() {
-        assert_eq!(generate_c_ins("D=M"), "1111110000010000");
-        assert_eq!(generate_c_ins("D;JLE"), "1110001100000110");
     }
 }
