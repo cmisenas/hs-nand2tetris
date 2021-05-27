@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*; // Needed for write_all
 use std::io::{self, BufRead};
@@ -30,4 +31,22 @@ where
     buf.lines()
         .map(|l| l.expect("Could not parse line").parse::<String>().unwrap())
         .collect()
+}
+
+pub fn to_binary(x: i16) -> String {
+    // NOTE: This won't work if a negative value is passed?
+    format!("{:016b}", x)
+}
+
+pub fn init_bit_spec(specs: Vec<String>) -> HashMap<String, String> {
+    // There must be a better way??
+    let _bits: Vec<(String, String)> = specs
+        .iter()
+        .cloned()
+        .map(|bit| {
+            let _bit: Vec<&str> = bit.split_ascii_whitespace().collect::<Vec<&str>>();
+            (_bit[0].to_string(), _bit[1].to_string())
+        })
+        .collect();
+    _bits.iter().cloned().collect::<HashMap<String, String>>()
 }

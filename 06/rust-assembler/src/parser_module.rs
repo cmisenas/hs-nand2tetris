@@ -1,4 +1,5 @@
 use crate::code_module::*;
+use crate::utils::*;
 
 #[derive(Debug)]
 pub struct Parser {
@@ -9,6 +10,7 @@ pub struct Parser {
     pub jump_bits: String,
 }
 
+#[derive(Debug)]
 pub enum CommandType {
     // - ACommand for @Xxx where Xxx is either a symbol or a decimal number
     ACommand,
@@ -71,8 +73,7 @@ impl Parser {
                 self.jump_bits = match jump_parts.len() {
                     2 => jump_parts[1].to_string(),
                     _ => "null".to_string(),
-                }
-                .to_string();
+                };
             }
             _ => {
                 self.comp_bits = "".to_string();
@@ -112,7 +113,7 @@ impl Parser {
         }
     }
 
-    fn current_command(&self) -> &str {
+    pub fn current_command(&self) -> &str {
         &self.program[self.index]
     }
 
@@ -143,17 +144,16 @@ impl Parser {
         }
     }
 
-    fn to_binary(&self, x: i16) -> String {
-        // Where x is either a non-negative decimal number
-        // or a symbol referring to such number.
-        // NOTE: This won't work if a negative value is passed?
-        format!("{:016b}", x)
+    // I added this for convenience to replace current command
+    // with a symbol if found in the table but ???
+    pub fn replace_current_command(&mut self, val: String) {
+        self.program[self.index] = val;
     }
 
-    // I added these 2 for convenience but not sure if this is the way to go
+    // I added these 2 for convenience but ???
     pub fn generate_a_ins(&mut self) -> String {
         // Return 0xxx xxxx xxxx xxxx
-        self.to_binary(self.symbol())
+        to_binary(self.symbol())
     }
 
     pub fn generate_c_ins(&mut self) -> String {

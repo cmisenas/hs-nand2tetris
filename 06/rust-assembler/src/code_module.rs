@@ -20,19 +20,6 @@ lazy_static! {
     };
 }
 
-fn init_bit_spec(specs: Vec<String>) -> HashMap<String, String> {
-    // There must be a better way??
-    let _bits: Vec<(String, String)> = specs
-        .iter()
-        .cloned()
-        .map(|bit| {
-            let _bit: Vec<&str> = bit.split_ascii_whitespace().collect::<Vec<&str>>();
-            (_bit[0].to_string(), _bit[1].to_string())
-        })
-        .collect();
-    _bits.iter().cloned().collect::<HashMap<String, String>>()
-}
-
 pub fn comp(mnemonic: &str) -> String {
     COMP_BITS.get(mnemonic).unwrap().to_string()
 }
