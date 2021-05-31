@@ -1,5 +1,5 @@
 // Generic type?
-struct Stack {
+pub struct Stack {
     storage: Vec<String>,
 }
 

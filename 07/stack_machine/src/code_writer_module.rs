@@ -3,7 +3,7 @@ use crate::parser_module::*;
 /**
  * Translates VM commands into Hack assembly code.
  */
-struct CodeWriter {
+pub struct CodeWriter {
     index: usize,
 }
 

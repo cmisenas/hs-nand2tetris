@@ -1,9 +1,11 @@
+use crate::stack::*;
+
 /**
  * Handles the parsing of a single .vm file and encapsulates access to the input code.
  * It reads VM commands, prases them and provides convenient access to their components.
  * It also removes all white space and comments.
  */
-struct Parser {
+pub struct Parser {
     index: usize,
     program: Vec<String>,
     current_command: String,
