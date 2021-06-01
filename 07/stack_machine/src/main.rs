@@ -69,6 +69,7 @@ fn main() {
     let stack = Stack::new();
     let mut code_writer = CodeWriter::new();
     let mut vm_programs: Vec<Vec<String>> = Vec::new();
+    let mut label_id = 0;
 
     for vm_file in vm_files.iter() {
         let vm_program = read_lines(vm_file.to_string());
@@ -89,7 +90,11 @@ fn main() {
                     // includes destination (i.e. dest=comp;jmp)
                     (*code_writer.commands_mut()).pop();
 
-                    code_writer.write_arithmetic(current_command);
+                    code_writer.write_arithmetic(current_command, &label_id.to_string());
+
+                    // Another hacky thing :(
+                    // TODO: Remove this crap
+                    label_id += 1;
                 }
                 CommandType::C_Push | CommandType::C_Pop => {
                     code_writer.write_push_pop(
