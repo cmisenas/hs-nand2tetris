@@ -57,13 +57,13 @@ impl CodeWriter {
 
                 self.pop_val_sp();
                 self.dec_sp();
-                self.commands.push("D=D-M".to_string());
+                self.commands.push("D=M-D".to_string());
                 self.commands.push(eq_ptr.to_string());
                 match command {
                     "eq" => self.commands.push("D;JEQ".to_string()),
                     "lt" => self.commands.push("D;JLT".to_string()),
-                    "gt" => self.commands.push("D;JGT".to_string()),
-                    _ => panic!("Poopsie"),
+                    // "gt" case
+                    _ => self.commands.push("D;JGT".to_string()),
                 }
 
                 self.commands.push("D=0".to_string()); // Set to false
