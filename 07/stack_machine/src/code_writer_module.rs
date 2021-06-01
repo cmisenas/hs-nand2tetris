@@ -40,7 +40,7 @@ impl CodeWriter {
             "sub" => {
                 self.pop_val_sp();
                 self.dec_sp();
-                self.commands.push("D=D-M".to_string());
+                self.commands.push("D=M-D".to_string());
             }
             "add" => {
                 self.pop_val_sp();
