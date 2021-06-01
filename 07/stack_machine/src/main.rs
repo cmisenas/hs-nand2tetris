@@ -10,6 +10,10 @@ use crate::utils::*;
 use std::env;
 use std::fs;
 
+fn get_file_name(filepath: String) -> String {
+    filepath.replace(".vm", ".asm").to_string()
+}
+
 /**
  * RAM address
  * 0-15             16 virtual registers
@@ -37,6 +41,9 @@ use std::fs;
  * the main program should process all the .vm files in this directory.
  * In doing so, it should use a separate Parser for handling each input file
  * and a single CodeWriter for handling the output.
+ *
+ *
+ * SP starts at 256
  */
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -60,11 +67,44 @@ fn main() {
     }
 
     let stack = Stack::new();
-    let code_writer = CodeWriter::new();
+    let mut code_writer = CodeWriter::new();
     let mut vm_programs: Vec<Vec<String>> = Vec::new();
+
     for vm_file in vm_files.iter() {
         let vm_program = read_lines(vm_file.to_string());
         vm_programs.push(vm_program.clone());
-        let parser = Parser::new(vm_program.clone());
+        let mut parser = Parser::new(vm_program.clone());
+
+        while parser.has_more_commands() {
+            let current_command = parser.current_command();
+            let command_type = parser.get_command_type();
+            println!(
+                "current command {} and type {:?}",
+                current_command, command_type
+            );
+            match command_type {
+                CommandType::C_Arithmetic => {
+                    // This is hacky. Remove the last D register value being set since
+                    // an arithmetic type command should set the Compute instruction which
+                    // includes destination (i.e. dest=comp;jmp)
+                    (*code_writer.commands_mut()).pop();
+
+                    code_writer.write_arithmetic(current_command);
+                }
+                CommandType::C_Push | CommandType::C_Pop => {
+                    code_writer.write_push_pop(
+                        command_type,
+                        &parser.get_arg1(),
+                        &parser.get_arg2(),
+                    );
+                }
+                _ => panic!("Unknown command type given!"),
+            }
+            println!("commands so far {:?}", code_writer.commands());
+            parser.advance();
+        }
     }
+
+    let asm_filename = get_file_name(vm_files[0].to_string());
+    write_to_file(&asm_filename, &code_writer.commands().join("\n"));
 }

@@ -61,6 +61,9 @@ impl Parser {
     pub fn advance(&mut self) {
         // Does a thing
         self.index += 1;
+        if self.index < self.program.len() {
+            self.current_command = self.program[self.index].to_string();
+        }
     }
 
     // Returns the type of the current VM command.
