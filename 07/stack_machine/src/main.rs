@@ -85,11 +85,6 @@ fn main() {
             );
             match command_type {
                 CommandType::C_Arithmetic => {
-                    // This is hacky. Remove the last D register value being set since
-                    // an arithmetic type command should set the Compute instruction which
-                    // includes destination (i.e. dest=comp;jmp)
-                    (*code_writer.commands_mut()).pop();
-
                     code_writer.write_arithmetic(current_command, &label_id.to_string());
 
                     // Another hacky thing :(

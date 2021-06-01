@@ -38,27 +38,26 @@ impl CodeWriter {
         // 0 = False
         match command {
             "sub" => {
-                self.commands.push("D=D-A".to_string());
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D-M".to_string());
             }
             "add" => {
-                self.commands.push("D=D+A".to_string());
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D+M".to_string());
             }
             "eq" | "lt" | "gt" => {
-                let mut eq_name = "LABEL_".to_string();
-                eq_name.push_str(label_id);
-                let mut eq_ptr = "@".to_string();
-                eq_ptr.push_str(&eq_name);
-                let mut eq_label = "()".to_string();
-                eq_label.insert_str(1, &eq_name);
+                let mut branch1 = label_id.to_string();
+                branch1.push_str(".1");
+                let mut branch2 = label_id.to_string();
+                branch2.push_str(".2");
+                let (eq_ptr, eq_label) = CodeWriter::get_label_ptr_pair(&branch1);
+                let (d_eq_ptr, d_eq_label) = CodeWriter::get_label_ptr_pair(&branch2);
 
-                let mut d_eq_name = "D_LABEL_".to_string();
-                d_eq_name.push_str(label_id);
-                let mut d_eq_ptr = "@".to_string();
-                d_eq_ptr.push_str(&d_eq_name);
-                let mut d_eq_label = "()".to_string();
-                d_eq_label.insert_str(1, &d_eq_name);
-
-                self.commands.push("D=D-A".to_string());
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D-M".to_string());
                 self.commands.push(eq_ptr.to_string());
                 match command {
                     "eq" => self.commands.push("D;JEQ".to_string()),
@@ -66,38 +65,60 @@ impl CodeWriter {
                     "gt" => self.commands.push("D;JGT".to_string()),
                     _ => panic!("Poopsie"),
                 }
-                self.commands.push("D=0".to_string());
+
+                self.commands.push("D=0".to_string()); // Set to false
                 self.commands.push(d_eq_ptr.to_string());
                 self.commands.push("0;JMP".to_string());
                 self.commands.push(eq_label.to_string());
-                self.commands.push("D=-1".to_string());
+                self.commands.push("D=-1".to_string()); // Set to true
                 self.commands.push(d_eq_label.to_string());
             }
-            "neg" => self.commands.push("D=-D".to_string()),
-            "and" => self.commands.push("D=D&A".to_string()),
-            "or" => self.commands.push("D=D|A".to_string()),
-            "not" => self.commands.push("D=!A".to_string()),
+            "neg" => {
+                self.pop_val_sp();
+                self.commands.push("D=-D".to_string());
+            }
+            "not" => {
+                self.pop_val_sp();
+                self.commands.push("D=!D".to_string())
+            }
+            "and" => {
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D&M".to_string());
+            }
+            "or" => {
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D|M".to_string());
+            }
             _ => panic!("Unknown command: {}", command),
         }
-        // Push results to the top of the stack
-        self.commands.push("@SP".to_string());
-        self.commands.push("A=M".to_string());
-        self.commands.push("M=D".to_string());
-        // Since these op results are a push to the top of the stack
-        // we need to increment SP
-        self.inc_sp();
+        self.set_m_to_sp();
+        self.store_d();
+    }
+
+    fn get_label_ptr_pair(label_id: &str) -> (String, String) {
+        let mut name = "LABEL_".to_string();
+        name.push_str(label_id);
+        let mut ptr = "@".to_string();
+        ptr.push_str(&name);
+        let mut label = "()".to_string();
+        label.insert_str(1, &name);
+        (ptr, label)
     }
 
     fn pop_val(&mut self, segment: &str, val: &str) {
-        let mut addr = "@".to_string();
         match segment {
             "constant" => {
-                self.dec_sp();
-                addr.push_str("SP");
-                self.commands.push(addr.to_string());
-                self.commands.push("A=M".to_string());
-                self.commands.push("M=D".to_string());
+                self.pop_val_sp();
             }
+            //"argument" => {}
+            //"local" => {}
+            //"pointer" => {}
+            //"static" => {}
+            //"this" => {}
+            //"that" => {}
+            //"temp" => {}
             _ => panic!("Unknown segment: {}", segment),
         }
     }
@@ -109,10 +130,31 @@ impl CodeWriter {
                 addr.push_str(val);
                 self.commands.push(addr.to_string());
                 self.commands.push("D=A".to_string());
-                // No need to increment SP since we did not write anything to memory segments
+                self.set_m_to_sp();
+                self.store_d();
             }
             _ => panic!("Unknown segment: {}", segment),
         }
+    }
+
+    // Decrements SP
+    // Sets D to SP
+    fn pop_val_sp(&mut self) {
+        self.dec_sp();
+        self.commands.push("D=M".to_string());
+    }
+
+    // Convenience function to store the current value to SP
+    fn set_m_to_sp(&mut self) {
+        self.commands.push("@SP".to_string());
+        self.commands.push("A=M".to_string());
+    }
+
+    // Stores a value to A address
+    // Increments SP
+    fn store_d(&mut self) {
+        self.commands.push("M=D".to_string());
+        self.inc_sp();
     }
 
     fn inc_sp(&mut self) {
