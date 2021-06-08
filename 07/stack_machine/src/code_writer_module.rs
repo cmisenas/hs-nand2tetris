@@ -217,21 +217,12 @@ impl CodeWriter {
         self.commands.push(offset_addr.to_string());
         self.commands.push("D=A".to_string());
         self.commands.push(segment_addr.to_string());
-        self.commands.push("M=M+D".to_string());
+        self.commands.push("A=M+D".to_string());
+        self.commands.push("D=M".to_string());
 
         // Push stack
         self.set_m_to_sp();
         self.store_d();
-
-        // Set @segment to D
-        self.commands.push(segment_addr.to_string());
-        self.commands.push("M=D".to_string());
-
-        // Set @segment to previous @segment value
-        self.commands.push(offset_addr.to_string());
-        self.commands.push("D=A".to_string());
-        self.commands.push(segment_addr.to_string());
-        self.commands.push("M=M-D".to_string());
     }
 
     // push segment index - Push the value of segment[index] onto the stack.
