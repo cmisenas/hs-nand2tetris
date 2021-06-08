@@ -107,31 +107,146 @@ impl CodeWriter {
         (ptr, label)
     }
 
+    fn set_segment_index_val(&mut self, segment: &str, offset: &str) {
+        let mut addr = offset.parse::<usize>().unwrap();
+        let segment_addr = match segment {
+            "local" => "@LCL".to_string(),
+            "argument" => "@ARG".to_string(),
+            "this" => "@THIS".to_string(),
+            "that" => "@THAT".to_string(),
+            "temp" => {
+                // Starts from @R5-@R12
+                addr = addr + 5;
+                if addr > 12 || addr < 5 {
+                    panic!("Invalid temp addr {}. Should only be @R5-@R12", addr);
+                }
+                let mut r_addr = "@R".to_string();
+                r_addr.push_str(&addr.to_string());
+                r_addr
+            }
+            "static" => {
+                // Static memory segment is from RAM[16]-RAM[255]
+                addr = addr + 16;
+                if addr > 255 || addr < 16 {
+                    panic!(
+                        "Invalid static addr {}. Should only be RAM[16]-RAM[255]",
+                        addr
+                    );
+                }
+                let mut r_addr = "@".to_string();
+                r_addr.push_str(&addr.to_string());
+                r_addr
+            }
+            _ => panic!("Unknown segment: {}", segment),
+        };
+
+        let mut offset_addr = "@".to_string();
+        offset_addr.push_str(offset);
+
+        // Set @segment to @segment[index] addr
+        self.commands.push(offset_addr.to_string());
+        self.commands.push("D=A".to_string());
+        self.commands.push(segment_addr.to_string());
+        self.commands.push("M=M+D".to_string());
+
+        // Pop stack
+        self.pop_val_sp();
+
+        // Set @segment to D
+        self.commands.push(segment_addr.to_string());
+        self.commands.push("A=M".to_string());
+        self.commands.push("M=D".to_string());
+
+        // Set @segment to previous @segment value
+        self.commands.push(offset_addr.to_string());
+        self.commands.push("D=A".to_string());
+        self.commands.push(segment_addr.to_string());
+        self.commands.push("M=M-D".to_string());
+    }
+
+    // pop segment index - Pop the top stack value and store it in segment[index].
     fn pop_val(&mut self, segment: &str, val: &str) {
         match segment {
             "constant" => {
                 self.pop_val_sp();
             }
-            //"argument" => {}
-            //"local" => {}
-            //"pointer" => {}
-            //"static" => {}
-            //"this" => {}
-            //"that" => {}
-            //"temp" => {}
+            "local" | "argument" | "this" | "that" | "temp" | "static" => {
+                self.set_segment_index_val(segment, val);
+            }
             _ => panic!("Unknown segment: {}", segment),
         }
     }
 
+    fn get_segment_index_val(&mut self, segment: &str, offset: &str) {
+        let mut addr = offset.parse::<usize>().unwrap();
+        let segment_addr = match segment {
+            "local" => "@LCL".to_string(),
+            "argument" => "@ARG".to_string(),
+            "this" => "@THIS".to_string(),
+            "that" => "@THAT".to_string(),
+            "temp" => {
+                // Starts from @R5-@R12
+                addr = addr + 5;
+                if addr > 12 || addr < 5 {
+                    panic!("Invalid temp addr {}. Should only be @R5-@R12", addr);
+                }
+                let mut r_addr = "@R".to_string();
+                r_addr.push_str(&addr.to_string());
+                r_addr
+            }
+            "static" => {
+                // Static memory segment is from RAM[16]-RAM[255]
+                addr = addr + 16;
+                if addr > 255 || addr < 16 {
+                    panic!(
+                        "Invalid static addr {}. Should only be RAM[16]-RAM[255]",
+                        addr
+                    );
+                }
+                let mut r_addr = "@".to_string();
+                r_addr.push_str(&addr.to_string());
+                r_addr
+            }
+            _ => panic!("Unknown segment: {}", segment),
+        };
+
+        let mut offset_addr = "@".to_string();
+        offset_addr.push_str(offset);
+
+        // Set @segment to @segment[index] addr
+        self.commands.push(offset_addr.to_string());
+        self.commands.push("D=A".to_string());
+        self.commands.push(segment_addr.to_string());
+        self.commands.push("M=M+D".to_string());
+
+        // Push stack
+        self.set_m_to_sp();
+        self.store_d();
+
+        // Set @segment to D
+        self.commands.push(segment_addr.to_string());
+        self.commands.push("M=D".to_string());
+
+        // Set @segment to previous @segment value
+        self.commands.push(offset_addr.to_string());
+        self.commands.push("D=A".to_string());
+        self.commands.push(segment_addr.to_string());
+        self.commands.push("M=M-D".to_string());
+    }
+
+    // push segment index - Push the value of segment[index] onto the stack.
     fn push_val(&mut self, segment: &str, val: &str) {
         let mut addr = "@".to_string();
+        addr.push_str(val);
         match segment {
             "constant" => {
-                addr.push_str(val);
                 self.commands.push(addr.to_string());
                 self.commands.push("D=A".to_string());
                 self.set_m_to_sp();
                 self.store_d();
+            }
+            "local" | "argument" | "this" | "that" | "temp" | "static" => {
+                self.get_segment_index_val(segment, val);
             }
             _ => panic!("Unknown segment: {}", segment),
         }
