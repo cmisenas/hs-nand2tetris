@@ -124,21 +124,20 @@ impl CodeWriter {
         self.commands.push(offset_addr.to_string());
         self.commands.push("D=A".to_string());
         self.commands.push(segment_addr.to_string());
-        self.commands.push("M=M+D".to_string());
+        self.commands.push("D=M+D".to_string());
+
+        // Use @R13 which is a general-purpose register to
+        // temporarily set the address of @segment[index]
+        self.commands.push("@R13".to_string());
+        self.commands.push("M=D".to_string());
 
         // Pop stack
         self.pop_val_sp();
 
         // Set @segment to D
-        self.commands.push(segment_addr.to_string());
+        self.commands.push("@R13".to_string());
         self.commands.push("A=M".to_string());
         self.commands.push("M=D".to_string());
-
-        // Set @segment to previous @segment value
-        self.commands.push(offset_addr.to_string());
-        self.commands.push("D=A".to_string());
-        self.commands.push(segment_addr.to_string());
-        self.commands.push("M=M-D".to_string());
     }
 
     // pop segment index - Pop the top stack value and store it in segment[index].
