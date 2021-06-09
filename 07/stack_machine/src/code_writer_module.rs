@@ -114,29 +114,6 @@ impl CodeWriter {
             "argument" => "@ARG".to_string(),
             "this" => "@THIS".to_string(),
             "that" => "@THAT".to_string(),
-            "temp" => {
-                // Starts from @R5-@R12
-                addr = addr + 5;
-                if addr > 12 || addr < 5 {
-                    panic!("Invalid temp addr {}. Should only be @R5-@R12", addr);
-                }
-                let mut r_addr = "@R".to_string();
-                r_addr.push_str(&addr.to_string());
-                r_addr
-            }
-            "static" => {
-                // Static memory segment is from RAM[16]-RAM[255]
-                addr = addr + 16;
-                if addr > 255 || addr < 16 {
-                    panic!(
-                        "Invalid static addr {}. Should only be RAM[16]-RAM[255]",
-                        addr
-                    );
-                }
-                let mut r_addr = "@".to_string();
-                r_addr.push_str(&addr.to_string());
-                r_addr
-            }
             _ => panic!("Unknown segment: {}", segment),
         };
 
@@ -170,8 +147,40 @@ impl CodeWriter {
             "constant" => {
                 self.pop_val_sp();
             }
-            "local" | "argument" | "this" | "that" | "temp" | "static" => {
+            "local" | "argument" | "this" | "that" => {
                 self.set_segment_index_val(segment, val);
+            }
+            "temp" => {
+                let mut segment_addr = "@R".to_string();
+                // Starts from @R5-@R12
+                let offset_val = val.parse::<usize>().unwrap() + 5;
+                segment_addr.push_str(&offset_val.to_string());
+                if offset_val > 12 || offset_val < 5 {
+                    panic!("Invalid temp address {}", offset_val);
+                }
+
+                // Pop stack
+                self.pop_val_sp();
+
+                // Set @segment to D
+                self.commands.push(segment_addr.to_string());
+                self.commands.push("M=D".to_string());
+            }
+            "static" => {
+                let mut segment_addr = "@".to_string();
+                // Static memory segment is from RAM[16]-RAM[255]
+                let offset_val = val.parse::<usize>().unwrap() + 16;
+                segment_addr.push_str(&offset_val.to_string());
+                if offset_val > 255 || offset_val < 16 {
+                    panic!("Invalid temp address {}", offset_val);
+                }
+
+                // Pop stack
+                self.pop_val_sp();
+
+                // Set @segment to D
+                self.commands.push(segment_addr.to_string());
+                self.commands.push("M=D".to_string());
             }
             _ => panic!("Unknown segment: {}", segment),
         }
@@ -184,29 +193,6 @@ impl CodeWriter {
             "argument" => "@ARG".to_string(),
             "this" => "@THIS".to_string(),
             "that" => "@THAT".to_string(),
-            "temp" => {
-                // Starts from @R5-@R12
-                addr = addr + 5;
-                if addr > 12 || addr < 5 {
-                    panic!("Invalid temp addr {}. Should only be @R5-@R12", addr);
-                }
-                let mut r_addr = "@R".to_string();
-                r_addr.push_str(&addr.to_string());
-                r_addr
-            }
-            "static" => {
-                // Static memory segment is from RAM[16]-RAM[255]
-                addr = addr + 16;
-                if addr > 255 || addr < 16 {
-                    panic!(
-                        "Invalid static addr {}. Should only be RAM[16]-RAM[255]",
-                        addr
-                    );
-                }
-                let mut r_addr = "@".to_string();
-                r_addr.push_str(&addr.to_string());
-                r_addr
-            }
             _ => panic!("Unknown segment: {}", segment),
         };
 
@@ -236,8 +222,42 @@ impl CodeWriter {
                 self.set_m_to_sp();
                 self.store_d();
             }
-            "local" | "argument" | "this" | "that" | "temp" | "static" => {
+            "local" | "argument" | "this" | "that" => {
                 self.get_segment_index_val(segment, val);
+            }
+            "temp" => {
+                let mut segment_addr = "@R".to_string();
+                // Starts from @R5-@R12
+                let offset_val = val.parse::<usize>().unwrap() + 5;
+                segment_addr.push_str(&offset_val.to_string());
+                if offset_val > 12 || offset_val < 5 {
+                    panic!("Invalid temp address {}", offset_val);
+                }
+
+                // Set A to temp address
+                self.commands.push(segment_addr.to_string());
+                self.commands.push("D=M".to_string());
+
+                // Push stack
+                self.set_m_to_sp();
+                self.store_d();
+            }
+            "static" => {
+                let mut segment_addr = "@".to_string();
+                // Static memory segment is from RAM[16]-RAM[255]
+                let offset_val = val.parse::<usize>().unwrap() + 16;
+                segment_addr.push_str(&offset_val.to_string());
+                if offset_val > 255 || offset_val < 16 {
+                    panic!("Invalid temp address {}", offset_val);
+                }
+
+                // Set A to temp address
+                self.commands.push(segment_addr.to_string());
+                self.commands.push("D=M".to_string());
+
+                // Push stack
+                self.set_m_to_sp();
+                self.store_d();
             }
             _ => panic!("Unknown segment: {}", segment),
         }
