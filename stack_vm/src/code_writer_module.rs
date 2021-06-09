@@ -24,79 +24,6 @@ impl CodeWriter {
         &mut self.commands
     }
 
-    // Informs the code writer that the translation
-    // of a new VM file is started
-    pub fn set_file_name(&self, file_name: String) {
-        // Does a thing
-    }
-
-    // Writes the assembly code that is the translation
-    // of the given arithmetic command.
-    pub fn write_arithmetic(&mut self, command: &str, label_id: &str) {
-        // Responsible for setting comp and jump bits for C_Instruction
-        // -1 = True
-        // 0 = False
-        match command {
-            "sub" => {
-                self.pop_val_sp();
-                self.dec_sp();
-                self.commands.push("D=M-D".to_string());
-            }
-            "add" => {
-                self.pop_val_sp();
-                self.dec_sp();
-                self.commands.push("D=D+M".to_string());
-            }
-            "eq" | "lt" | "gt" => {
-                let mut branch1 = label_id.to_string();
-                branch1.push_str(".1");
-                let mut branch2 = label_id.to_string();
-                branch2.push_str(".2");
-                let (eq_ptr, eq_label) = CodeWriter::get_label_ptr_pair(&branch1);
-                let (d_eq_ptr, d_eq_label) = CodeWriter::get_label_ptr_pair(&branch2);
-
-                self.pop_val_sp();
-                self.dec_sp();
-                self.commands.push("D=M-D".to_string());
-                self.commands.push(eq_ptr.to_string());
-                match command {
-                    "eq" => self.commands.push("D;JEQ".to_string()),
-                    "lt" => self.commands.push("D;JLT".to_string()),
-                    // "gt" case
-                    _ => self.commands.push("D;JGT".to_string()),
-                }
-
-                self.commands.push("D=0".to_string()); // Set to false
-                self.commands.push(d_eq_ptr.to_string());
-                self.commands.push("0;JMP".to_string());
-                self.commands.push(eq_label.to_string());
-                self.commands.push("D=-1".to_string()); // Set to true
-                self.commands.push(d_eq_label.to_string());
-            }
-            "neg" => {
-                self.pop_val_sp();
-                self.commands.push("D=-D".to_string());
-            }
-            "not" => {
-                self.pop_val_sp();
-                self.commands.push("D=!D".to_string())
-            }
-            "and" => {
-                self.pop_val_sp();
-                self.dec_sp();
-                self.commands.push("D=D&M".to_string());
-            }
-            "or" => {
-                self.pop_val_sp();
-                self.dec_sp();
-                self.commands.push("D=D|M".to_string());
-            }
-            _ => panic!("Unknown command: {}", command),
-        }
-        self.set_m_to_sp();
-        self.store_d();
-    }
-
     fn get_label_ptr_pair(label_id: &str) -> (String, String) {
         let mut name = "LABEL_".to_string();
         name.push_str(label_id);
@@ -205,8 +132,7 @@ impl CodeWriter {
         self.commands.push("D=M".to_string());
 
         // Push stack
-        self.set_m_to_sp();
-        self.store_d();
+        self.push_to_stack();
     }
 
     fn get_segment_index_val(&mut self, offset: &str, min: usize, max: usize) {
@@ -225,8 +151,7 @@ impl CodeWriter {
         self.commands.push("D=M".to_string());
 
         // Push stack
-        self.set_m_to_sp();
-        self.store_d();
+        self.push_to_stack();
     }
 
     // push segment index - Push the value of segment[index] onto the stack.
@@ -237,8 +162,7 @@ impl CodeWriter {
             "constant" => {
                 self.commands.push(addr.to_string());
                 self.commands.push("D=A".to_string());
-                self.set_m_to_sp();
-                self.store_d();
+                self.push_to_stack();
             }
             "local" | "argument" | "this" | "that" => {
                 self.get_calc_segment_addr(segment, val);
@@ -267,19 +191,11 @@ impl CodeWriter {
     }
 
     // Convenience function to store the current value to SP
-    fn set_m_to_sp(&mut self) {
+    // Increments SP
+    fn push_to_stack(&mut self) {
         self.commands.push("@SP".to_string());
         self.commands.push("A=M".to_string());
-    }
-
-    // Stores a value to A address
-    // Increments SP
-    fn store_d(&mut self) {
         self.commands.push("M=D".to_string());
-        self.inc_sp();
-    }
-
-    fn inc_sp(&mut self) {
         self.commands.push("@SP".to_string());
         self.commands.push("AM=M+1".to_string());
     }
@@ -289,8 +205,84 @@ impl CodeWriter {
         self.commands.push("AM=M-1".to_string());
     }
 
-    // Writes the assembly code that is the translation
-    // of the given command, where command is either C_Push or C_Pop
+    /**
+     * Writes the assembly code that is the translation
+     * of the given arithmetic command.
+     */
+    pub fn write_arithmetic(&mut self, command: &str, label_id: &str) {
+        match command {
+            "sub" => {
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=M-D".to_string());
+            }
+            "add" => {
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D+M".to_string());
+            }
+            "eq" | "lt" | "gt" => {
+                let mut branch1 = label_id.to_string();
+                branch1.push_str(".1");
+                let mut branch2 = label_id.to_string();
+                branch2.push_str(".2");
+                let (eq_ptr, eq_label) = CodeWriter::get_label_ptr_pair(&branch1);
+                let (d_eq_ptr, d_eq_label) = CodeWriter::get_label_ptr_pair(&branch2);
+
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=M-D".to_string());
+                self.commands.push(eq_ptr.to_string());
+                match command {
+                    "eq" => self.commands.push("D;JEQ".to_string()),
+                    "lt" => self.commands.push("D;JLT".to_string()),
+                    // "gt" case
+                    _ => self.commands.push("D;JGT".to_string()),
+                }
+
+                self.commands.push("D=0".to_string()); // Set to false
+                self.commands.push(d_eq_ptr.to_string());
+                self.commands.push("0;JMP".to_string());
+                self.commands.push(eq_label.to_string());
+                self.commands.push("D=-1".to_string()); // Set to true
+                self.commands.push(d_eq_label.to_string());
+            }
+            "neg" => {
+                self.pop_val_sp();
+                self.commands.push("D=-D".to_string());
+            }
+            "not" => {
+                self.pop_val_sp();
+                self.commands.push("D=!D".to_string())
+            }
+            "and" => {
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D&M".to_string());
+            }
+            "or" => {
+                self.pop_val_sp();
+                self.dec_sp();
+                self.commands.push("D=D|M".to_string());
+            }
+            _ => panic!("Unknown command: {}", command),
+        }
+        self.push_to_stack();
+    }
+
+    /**
+     * Writes assembly code that effects the VM initialization,
+     * also called bootstrap code.
+     * This code must be placed at the beginning of the output file.
+     */
+    pub fn write_init(&mut self) {
+        // Does a thing
+    }
+
+    /**
+     * Writes the assembly code that is the translation
+     * of the given command, where command is either C_Push or C_Pop.
+     */
     pub fn write_push_pop(&mut self, command: CommandType, segment: &str, val: &str) {
         match command {
             CommandType::C_Push => self.push_val(segment, val),
@@ -299,8 +291,60 @@ impl CodeWriter {
         }
     }
 
-    // Closes the output file
-    pub fn close(&self, command: String) {
+    /**
+     * Writes assembly code that effects the label command.
+     */
+    pub fn write_label(&mut self, label: &str) {
         // Does a thing
+    }
+
+    /**
+     * Writes assembly code that effects the goto command.
+     */
+    pub fn write_goto(&mut self, label: &str) {
+        // Does a thing
+    }
+
+    /**
+     * Writes assembly code that effects the if-goto command.
+     */
+    pub fn write_if(&mut self, label: &str) {
+        // Does a thing
+    }
+
+    /**
+     * Writes assembly code that effects the call command.
+     */
+    pub fn write_call(&mut self, fn_name: &str, num_args: u8) {
+        // Does a thing
+    }
+
+    /**
+     * Writes assembly code that effects the return command.
+     */
+    pub fn write_return(&mut self) {
+        // Does a thing
+    }
+
+    /**
+     * Writes assembly code that effects the function command.
+     */
+    pub fn write_function(&mut self, fn_name: &str, num_locals: u8) {
+        // Does a thing
+    }
+
+    /**
+     * Informs the code writer that the translation
+     * of a new VM file is started.
+     */
+    pub fn set_file_name(&self, file_name: String) {
+        // This is done in the main.rs file
+    }
+
+    /**
+     * Closes the output file
+     */
+    pub fn close(&self, command: String) {
+        // This is done in the main.rs file
     }
 }

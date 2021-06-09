@@ -41,9 +41,6 @@ fn get_file_name(filepath: String) -> String {
  * the main program should process all the .vm files in this directory.
  * In doing so, it should use a separate Parser for handling each input file
  * and a single CodeWriter for handling the output.
- *
- *
- * SP starts at 256
  */
 fn main() {
     let args: Vec<String> = env::args().collect();
