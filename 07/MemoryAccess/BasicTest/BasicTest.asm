@@ -122,7 +122,7 @@ AM=M+1
 @SP
 AM=M-1
 D=M
-@R11
+@11
 M=D
 @0
 D=A
@@ -218,7 +218,7 @@ A=M
 M=D
 @SP
 AM=M+1
-@R11
+@11
 D=M
 @SP
 A=M
