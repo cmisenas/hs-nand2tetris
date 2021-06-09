@@ -171,7 +171,23 @@ impl CodeWriter {
                 let offset_val = val.parse::<usize>().unwrap() + 16;
                 segment_addr.push_str(&offset_val.to_string());
                 if offset_val > 255 || offset_val < 16 {
-                    panic!("Invalid temp address {}", offset_val);
+                    panic!("Invalid static address {}", offset_val);
+                }
+
+                // Pop stack
+                self.pop_val_sp();
+
+                // Set @segment to D
+                self.commands.push(segment_addr.to_string());
+                self.commands.push("M=D".to_string());
+            }
+            "pointer" => {
+                let mut segment_addr = "@".to_string();
+                // Pointer is mapped to locations 3-4 (also called THIS and THAT)
+                let offset_val = val.parse::<usize>().unwrap() + 3;
+                segment_addr.push_str(&offset_val.to_string());
+                if offset_val > 4 || offset_val < 3 {
+                    panic!("Invalid pointer address {}", offset_val);
                 }
 
                 // Pop stack
@@ -248,6 +264,23 @@ impl CodeWriter {
                 segment_addr.push_str(&offset_val.to_string());
                 if offset_val > 255 || offset_val < 16 {
                     panic!("Invalid temp address {}", offset_val);
+                }
+
+                // Set A to temp address
+                self.commands.push(segment_addr.to_string());
+                self.commands.push("D=M".to_string());
+
+                // Push stack
+                self.set_m_to_sp();
+                self.store_d();
+            }
+            "pointer" => {
+                let mut segment_addr = "@".to_string();
+                // Pointer is mapped to locations 3-4 (also called THIS and THAT)
+                let offset_val = val.parse::<usize>().unwrap() + 3;
+                segment_addr.push_str(&offset_val.to_string());
+                if offset_val > 4 || offset_val < 3 {
+                    panic!("Invalid pointer address {}", offset_val);
                 }
 
                 // Set A to temp address
