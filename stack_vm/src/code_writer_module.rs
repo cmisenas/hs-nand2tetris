@@ -6,6 +6,7 @@ use crate::parser_module::*;
 pub struct CodeWriter {
     index: usize,
     commands: Vec<String>,
+    label_id: usize,
 }
 
 impl CodeWriter {
@@ -13,6 +14,7 @@ impl CodeWriter {
         CodeWriter {
             index: 0,
             commands: Vec::new(),
+            label_id: 0,
         }
     }
 
@@ -209,7 +211,7 @@ impl CodeWriter {
      * Writes the assembly code that is the translation
      * of the given arithmetic command.
      */
-    pub fn write_arithmetic(&mut self, command: &str, label_id: &str) {
+    pub fn write_arithmetic(&mut self, command: &str) {
         match command {
             "sub" => {
                 self.pop_val_sp();
@@ -222,9 +224,9 @@ impl CodeWriter {
                 self.commands.push("D=D+M".to_string());
             }
             "eq" | "lt" | "gt" => {
-                let mut branch1 = label_id.to_string();
+                let mut branch1 = self.label_id.to_string();
                 branch1.push_str(".1");
-                let mut branch2 = label_id.to_string();
+                let mut branch2 = self.label_id.to_string();
                 branch2.push_str(".2");
                 let (eq_ptr, eq_label) = CodeWriter::get_label_ptr_pair(&branch1);
                 let (d_eq_ptr, d_eq_label) = CodeWriter::get_label_ptr_pair(&branch2);
@@ -267,6 +269,7 @@ impl CodeWriter {
             }
             _ => panic!("Unknown command: {}", command),
         }
+        self.label_id += 1;
         self.push_to_stack();
     }
 

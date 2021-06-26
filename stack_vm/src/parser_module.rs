@@ -1,5 +1,3 @@
-use crate::stack::*;
-
 /**
  * Handles the parsing of a single .vm file and encapsulates access to the input code.
  * It reads VM commands, prases them and provides convenient access to their components.
@@ -13,9 +11,9 @@ pub struct Parser {
 
 #[derive(Debug)]
 pub enum CommandType {
-    C_Arithmetic,
-    C_Push,
-    C_Pop,
+    C_Arithmetic, // Done
+    C_Push,       // Done
+    C_Pop,        // Done
     C_Label,
     C_Goto,
     C_If,
@@ -77,6 +75,12 @@ impl Parser {
             }
             "push" => CommandType::C_Push,
             "pop" => CommandType::C_Pop,
+            "label" => CommandType::C_Label,
+            "goto" => CommandType::C_Goto,
+            "if-goto" => CommandType::C_If,
+            "function" => CommandType::C_Function,
+            "return" => CommandType::C_Return,
+            "call" => CommandType::C_Call,
             _ => panic!("The rest of the commands will be handled on Project 8"),
         }
     }

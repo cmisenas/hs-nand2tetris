@@ -1,11 +1,9 @@
 mod code_writer_module;
 mod parser_module;
-mod stack;
 mod utils;
 
 use crate::code_writer_module::*;
 use crate::parser_module::*;
-use crate::stack::*;
 use crate::utils::*;
 use std::env;
 use std::fs;
@@ -63,10 +61,8 @@ fn main() {
         panic!("No .vm files found in {}", prog_arg);
     }
 
-    let stack = Stack::new();
     let mut code_writer = CodeWriter::new();
     let mut vm_programs: Vec<Vec<String>> = Vec::new();
-    let mut label_id = 0;
 
     for vm_file in vm_files.iter() {
         let vm_program = read_lines(vm_file.to_string());
@@ -82,11 +78,7 @@ fn main() {
             );
             match command_type {
                 CommandType::C_Arithmetic => {
-                    code_writer.write_arithmetic(current_command, &label_id.to_string());
-
-                    // Another hacky thing :(
-                    // TODO: Remove this crap
-                    label_id += 1;
+                    code_writer.write_arithmetic(current_command);
                 }
                 CommandType::C_Push | CommandType::C_Pop => {
                     code_writer.write_push_pop(
